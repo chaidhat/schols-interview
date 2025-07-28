@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .task-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .tasks-section {
+            margin-top: 30px;
+        }
+
+        .tasks-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .task-list {
+            list-style: none;
+        }
+
+        .task-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .task-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .task-item.completed {
+            background-color: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        .task-content {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .task-name {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .task-name.completed {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .task-status {
+            margin-left: 15px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Task Manager</h1>
+            <p>Simple task creation and viewing</p>
+        </div>
+        
+        <div class="content">
+            <div id="message"></div>
+            
+            <div class="task-form">
+                <h2>Add New Task</h2>
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="taskName">Task Name:</label>
+                        <input type="text" id="taskName" name="taskName" required placeholder="Enter your task...">
+                    </div>
+                    <div class="form-group">
+                        <label for="userId">User ID:</label>
+                        <input type="text" id="userId" name="userId" required placeholder="Enter your user ID..." value="user1">
+                    </div>
+                    <button type="submit" class="btn">Add Task</button>
+                </form>
+            </div>
+
+            <div class="tasks-section">
+                <h2>Your Tasks</h2>
+                <div id="loadingTasks" class="loading" style="display: none;">Loading tasks...</div>
+                <ul id="taskList" class="task-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let currentUserId = 'user1';
+        let pollingInterval = null;
+        let isLoadingTasks = false;
+
+        // DOM elements
+        const taskForm = document.getElementById('taskForm');
+        const taskNameInput = document.getElementById('taskName');
+        const userIdInput = document.getElementById('userId');
+        const taskList = document.getElementById('taskList');
+        const messageDiv = document.getElementById('message');
+        const loadingDiv = document.getElementById('loadingTasks');
+
+        // Event listeners
+        taskForm.addEventListener('submit', handleCreateTask);
+        userIdInput.addEventListener('change', handleUserIdChange);
+
+        // Initialize
+        startPolling();
+
+        // Start polling for tasks every 0.5 seconds
+        function startPolling() {
+            // Clear any existing polling
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            // Initial load
+            loadTasks();
+            
+            // Set up polling every 500ms (0.5 seconds)
+            pollingInterval = setInterval(() => {
+                loadTasks();
+            }, 500);
+        }
+
+        // Stop polling
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Handle task creation
+        async function handleCreateTask(e) {
+            e.preventDefault();
+            
+            const taskName = taskNameInput.value.trim();
+            const userId = userIdInput.value.trim();
+            
+            if (!taskName || !userId) {
+                showMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ taskName, userId })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create task');
+                }
+
+                const result = await response.json();
+                showMessage('Task created successfully!', 'success');
+                taskNameInput.value = '';
+                currentUserId = userId;
+                // Don't manually load tasks here - polling will handle it
+            } catch (error) {
+                showMessage('Error creating task: ' + error.message, 'error');
+            }
+        }
+
+        // Handle user ID change
+        function handleUserIdChange(e) {
+            const newUserId = e.target.value.trim();
+            if (newUserId !== currentUserId) {
+                currentUserId = newUserId;
+                if (currentUserId) {
+                    // Restart polling for new user
+                    startPolling();
+                } else {
+                    stopPolling();
+                    taskList.innerHTML = '';
+                }
+            }
+        }
+
+        // Load tasks for current user
+        async function loadTasks() {
+            if (!currentUserId || isLoadingTasks) return;
+            
+            isLoadingTasks = true;
+            
+            // Only show loading indicator on first load, not during polling
+            if (taskList.innerHTML === '') {
+                loadingDiv.style.display = 'block';
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${currentUserId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load tasks');
+                }
+
+                const tasks = await response.json();
+                loadingDiv.style.display = 'none';
+                renderTasks(tasks);
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                // Only show error message if it's not a polling request
+                if (taskList.innerHTML === '') {
+                    showMessage('Error loading tasks: ' + error.message, 'error');
+                }
+                console.warn('Polling error:', error.message);
+            } finally {
+                isLoadingTasks = false;
+            }
+        }
+
+        // Render tasks in the UI
+        function renderTasks(tasks) {
+            // Store current scroll position
+            const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            taskList.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                taskList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No tasks yet</h3>
+                        <p>Create your first task above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = `task-item ${task.completed ? 'completed' : ''}`;
+                li.innerHTML = `
+                    <div class="task-content">
+                        <span class="task-name ${task.completed ? 'completed' : ''}">${escapeHtml(task.taskName)}</span>
+                        <span class="task-status ${task.completed ? 'status-completed' : 'status-pending'}">
+                            ${task.completed ? 'Completed' : 'Pending'}
+                        </span>
+                    </div>
+                `;
+                taskList.appendChild(li);
+            });
+            
+            // Restore scroll position to prevent jumping during polling updates
+            window.scrollTo(0, currentScrollTop);
+        }
+
+        // Show message to user
+        function showMessage(message, type) {
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Clean up when page is about to be unloaded
+        window.addEventListener('beforeunload', () => {
+            stopPolling();
+        });
+
+        // Handle visibility change (pause polling when tab is not active)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                startPolling();
+            }
+        });
+    </script>
+</body>
+</html>
