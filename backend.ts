@@ -15,6 +15,10 @@ app.use(express.json());
 
 
 
+// does a task
+async function doTask() {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+}
 
 // TODO: replace any with the correct type
 function createTask(taskName: any, userId: any): void {
