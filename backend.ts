@@ -30,11 +30,11 @@ function getTasks(userId: any): any {
 
     // TODO: implement
 
-    return {
+    return [{
         "taskId": taskId,
         "taskName": taskName,
         "completed": completed
-    }
+    }];
 }
 
 
